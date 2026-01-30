@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-3">
+    <h2 class="h4 mb-4">{{ resident.name }} 様のバイタル推移</h2>
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <canvas id="vitalChart" style="width: 100%; height: 300px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('vitalChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|safe }},
+            datasets: [
+                {
+                    label: '体温 (°C)',
+                    data: {{ temps|safe }},
+                    borderColor: 'rgb(255, 99, 132)',
+                    yAxisID: 'y-temp',
+                },
+                {
+                    label: '血圧(高)',
+                    data: {{ bp_high|safe }},
+                    borderColor: 'rgb(54, 162, 235)',
+                    yAxisID: 'y-bp',
+                }
+            ]
+        },
+        options: {
+            scales: {
+                'y-temp': { type: 'linear', position: 'left', min: 35, max: 40 },
+                'y-bp': { type: 'linear', position: 'right', min: 40, max: 200 }
+            }
+        }
+    });
+</script>
+{% endblock %}

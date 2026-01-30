@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-secondary">
+            <i class="bi bi-people-fill text-primary"></i> 利用者一覧
+        </h2>
+        <div class="text-muted">
+            <span class="badge bg-info text-dark">{{ residents.count }} 名の利用者が登録されています</span>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for resident in residents %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0 rounded-4 hover-shadow transition">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                            {{ resident.name|slice:":1" }}
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0 fw-bold">{{ resident.name }} 様</h5>
+                            <small class="text-muted">ID: {{ resident.resident_code|default:"---" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 small">
+                        <p class="mb-1 text-muted">
+                            <i class="bi bi-calendar-event"></i> 生年月日: {{ resident.birth_date|date:"Y/m/d" }}
+                        </p>
+                        </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'daily_record_create' resident.id %}" class="btn btn-primary rounded-pill">
+                            <i class="bi bi-pencil-square"></i> 日報入力
+                        </a>
+                        
+                        <div class="btn-group w-100">
+                            <a href="#" class="btn btn-outline-secondary btn-sm rounded-start-pill">基本情報</a>
+                            <a href="{% url 'monitoring_report_view' resident.id 2026 1 %}" class="btn btn-outline-secondary btn-sm rounded-end-pill">モニタリング</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center pb-3">
+                    <span class="badge rounded-pill bg-light text-dark border">
+                        <i class="bi bi-clock-history"></i> 本日の記録: 未完了
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <p class="text-muted">登録されている利用者がいません。</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    /* ホバー時に少し浮き上がる演出 */
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .transition {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}

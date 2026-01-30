@@ -1,0 +1,47 @@
+# templates/group_home/print_plan.html
+<div class="print-area">
+    <div style="text-align: right;">作成日：{{ revision.plan_start_date }}</div>
+    <h1 style="text-align: center;">個別支援計画書（第{{ revision.revision_no }}版）</h1>
+
+    <table class="table">
+        <tr>
+            <th style="width: 15%;">利用者名</th>
+            <td style="width: 35%;">{{ resident.name }} 様</td>
+            <th style="width: 15%;">計画期間</th>
+            <td style="width: 35%;">{{ revision.plan_start_date }} 〜 {{ revision.plan_end_date }}</td>
+        </tr>
+    </table>
+
+    # 目標と内容の連動表示（related_goal_noによる紐付け）
+    {% for goal in goals %}
+    <div class="avoid-break">
+        <table class="table">
+            <tr class="table-light">
+                <th colspan="2">目標 {{ goal.goal_no }}： {{ goal.goal_text }}</th>
+            </tr>
+            <tr>
+                <td style="width: 20%;">具体的支援内容</td>
+                <td>
+                    {% for content in contents %}
+                        {% if content.related_goal_no == goal.goal_no %}
+                            ・{{ content.content_text }}<br>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+        </table>
+    </div>
+    {% endfor %}
+
+    # 監査で最重要となる署名欄
+    <div class="avoid-break" style="margin-top: 30px;">
+        <table class="table">
+            <tr>
+                <td style="height: 60px; width: 50%;">サービス管理責任者 印</td>
+                <td style="height: 60px; width: 50%;">利用者（または保護者）同意印<br>
+                    <small>同意日：{{ revision.agreed_at|default:"　　年　月　日" }}</small>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .audit-container { padding: 20px; background-color: white; }
+    .audit-table th { background-color: #f8f9fa !important; border: 1px solid #333 !important; }
+    .audit-table td { border: 1px solid #333 !important; }
+    .goal-badge { border: 1px solid #000; padding: 2px 5px; background: #eee; font-size: 0.85em; }
+
+    @media print {
+        .no-print { display: none !important; } /* ボタンを隠す */
+        .audit-container { padding: 0; }
+        @page { size: A4 landscape; margin: 10mm; }
+    }
+</style>
+
+<div class="audit-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 m-0">支援実施記録（監査証跡ログ）</h2>
+        <div>
+            <a href="{% url 'resident_list' %}" class="btn btn-outline-secondary btn-sm no-print">一覧に戻る</a>
+            <button onclick="window.print();" class="btn btn-success no-print">
+                <i class="bi bi-printer"></i> A4印刷・PDF出力
+            </button>
+        </div>
+    </div>
+
+    <hr class="no-print">
+
+    <div class="mb-4">
+        <strong>利用者名：</strong> {{ resident.name }} 様 
+        <span class="ms-4"><strong>出力日：</strong> {% now "Y年m月d日" %}</span>
+    </div>
+
+    <table class="table audit-table">
+        <thead>
+            <tr>
+                <th style="width: 15%;">日付 / 記録者</th>
+                <th style="width: 20%;">関連目標</th>
+                <th style="width: 65%;">支援内容・エビデンス</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in daily_records %}
+            <tr>
+                <td>{{ record.record_date|date:"Y/m/d" }}</td>
+                <td>
+                    {% for item in record.items.all %}
+                        {% if item.target_goal_no %}
+                        <span class="goal-badge">目標 {{ item.target_goal_no }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for item in record.items.all %}
+                        <strong>【{{ item.item_code }}】</strong> {{ item.item_value|linebreaksbr }}<br>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

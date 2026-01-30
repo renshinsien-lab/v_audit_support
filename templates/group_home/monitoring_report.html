@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* 目標タイルのデザイン */
+    .goal-selector input[type="radio"] { display: none; }
+    .goal-label {
+        display: inline-block;
+        width: 65px;
+        height: 65px;
+        line-height: 65px;
+        text-align: center;
+        border: 2px solid #dee2e6;
+        border-radius: 15px;
+        margin: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        background-color: #f8f9fa;
+        transition: all 0.2s ease;
+    }
+    .goal-selector input[type="radio"]:checked + .goal-label {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    }
+    .none-label { width: auto; padding: 0 25px; }
+
+    /* クイック入力チップ */
+    .template-btn {
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+        transition: all 0.3s;
+    }
+
+    /* 入力エリアの装飾 */
+    .input-card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    .recording-active { animation: pulse-red 1.5s infinite; }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    textarea.ai-success {
+        background-color: #e8f0fe !important;
+        border-color: #0d6efd !important;
+        transition: all 0.5s;
+    }
+</style>
+
+<div class="container mt-3 mb-5" style="max-width: 600px;">
+    <div class="d-flex align-items-center mb-4">
+        <a href="{% url 'resident_list' %}" class="btn btn-link text-decoration-none ps-0">
+            <i class="bi bi-chevron-left fs-4 text-dark"></i>
+        </a>
+        <h2 class="h4 mb-0 fw-bold">支援記録の入力</h2>
+    </div>
+
+    <div class="card input-card">
+        <div class="card-body p-4">
+            <div class="mb-4">
+                <span class="badge bg-light text-primary border p-2 mb-2">対象者</span>
+                <h3 class="h5 fw-bold">{{ resident.name }} 様</h3>
+            </div>
+
+            <form method="post" id="record-form">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted">
+                        <i class="bi bi-bullseye"></i> 関連する目標番号
+                    </label>
+                    <div class="goal-selector d-flex flex-wrap">
+                        <input type="radio" name="target_goal_no" value="" id="goal-none" checked>
+                        <label for="goal-none" class="goal-label none-label">なし</label>
+
+                        {% for i in "12345"|make_list %}
+                        <input type="radio" name="target_goal_no" value="{{ forloop.counter }}" id="goal-{{ forloop.counter }}">
+                        <label for="goal-{{ forloop.counter }}" class="goal-label">{{ forloop.counter }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted d-block">クイック入力（タップで挿入）</label>
+                    <div id="quick-templates" class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill template-btn" data-text="特変なし。">特変なし</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill template-btn" data-text="食事は全量摂取されました。">食事全量</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill template-btn" data-text="水分摂取を促し、100ml飲水。">水分100ml</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill template-btn" data-text="居室にて安楽に過ごされています。">居室安楽</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill template-btn" data-text="更衣の介助を実施。">更衣介助</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill template-btn" data-text="排泄介助。汚染なく経過。">排泄介助</button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-end mb-2">
+                        <label class="form-label fw-bold small text-muted mb-0">
+                            <i class="bi bi-chat-right-text"></i> 支援内容
+                        </label>
+                        <div class="btn-group shadow-sm">
+                            <button type="button" id="start-voice" class="btn btn-outline-danger btn-sm px-3">
+                                <i class="bi bi-mic-fill"></i> 音声
+                            </button>
+                            <button type="button" id="ai-format" class="btn btn-outline-primary btn-sm px-3">
+                                <i class="bi bi-magic"></i> AI整形
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="voice-status" class="alert alert-danger py-2 small d-none recording-active">
+                        <span class="spinner-border spinner-border-sm me-2"></span>聞き取り中...
+                    </div>
+
+                    <textarea id="record-textarea" name="item_value" class="form-control" rows="8" 
+                              placeholder="内容を直接入力するか、上記ボタンを使用してください。" required></textarea>
+                </div>
+
+                <div class="d-grid gap-3">
+                    <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">
+                        <i class="bi bi-cloud-arrow-up-fill"></i> 記録を保存する
+                    </button>
+                    <button type="button" onclick="window.location.href='{% url 'resident_list' %}'" class="btn btn-light btn-sm text-muted">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CSRFトークン取得 ---
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const startBtn = document.getElementById('start-voice');
+    const aiBtn = document.getElementById('ai-format');
+    const textarea = document.getElementById('record-textarea');
+    const statusMsg = document.getElementById('voice-status');
+
+    // --- 定型文挿入ロジック ---
+    document.querySelectorAll('.template-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const textToInsert = button.getAttribute('data-text');
+            const currentVal = textarea.value;
+            
+            if (currentVal && !currentVal.endsWith('\n')) {
+                textarea.value += '\n' + textToInsert;
+            } else {
+                textarea.value += textToInsert;
+            }
+            
+            button.classList.replace('btn-outline-secondary', 'btn-success');
+            setTimeout(() => button.classList.replace('btn-success', 'btn-outline-secondary'), 500);
+            textarea.focus();
+        });
+    });
+
+    // --- 音声認識 ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';
+        
+        startBtn.addEventListener('click', () => {
+            recognition.start();
+            startBtn.classList.replace('btn-outline-danger', 'btn-danger');
+            statusMsg.classList.remove('d-none');
+        });
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            textarea.value = (textarea.value ? textarea.value + "\n" : "") + transcript;
+        };
+
+        recognition.onend = () => {
+            startBtn.classList.replace('btn-danger', 'btn-outline-danger');
+            statusMsg.classList.add('d-none');
+        };
+    } else {
+        startBtn.disabled = true;
+    }
+
+    // --- AI整形 ---
+    aiBtn.addEventListener('click', async () => {
+        const rawText = textarea.value;
+        if (!rawText) return alert("整形する文章がありません");
+
+        const originalBtnHtml = aiBtn.innerHTML;
+        aiBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        aiBtn.disabled = true;
+
+        try {
+            const response = await fetch('/ai-format-api/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ text: rawText })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                textarea.value = data.formatted_text;
+                textarea.classList.add('ai-success');
+                setTimeout(() => textarea.classList.remove('ai-success'), 1000);
+            }
+        } catch (error) {
+            alert("AI整形に失敗しました。");
+        } finally {
+            aiBtn.innerHTML = originalBtnHtml;
+            aiBtn.disabled = false;
+        }
+    });
+</script>
+{% endblock %}

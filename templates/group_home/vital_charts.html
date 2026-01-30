@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-4">
+                <i class="bi bi-graph-up text-primary"></i> バイタル推移（直近）
+            </h5>
+            <div style="position: relative; height:40vh; width:100%">
+                <canvas id="vitalChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 非同期でデータを取得して描画
+    fetch(`/vital-graph-data/{{ resident.id }}/`)
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('vitalChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: '体温 (℃)',
+                            data: data.temp,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            yAxisID: 'y-temp',
+                            tension: 0.3, // 線を滑らかに
+                            fill: true
+                        },
+                        {
+                            label: '血圧(高)',
+                            data: data.bp_high,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            yAxisID: 'y-bp',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        'y-temp': {
+                            type: 'linear',
+                            position: 'left',
+                            min: 35,
+                            max: 39,
+                            title: { display: true, text: '体温' }
+                        },
+                        'y-bp': {
+                            type: 'linear',
+                            position: 'right',
+                            min: 60,
+                            max: 180,
+                            title: { display: true, text: '血圧' },
+                            grid: { drawOnChartArea: false } // 目盛線が重ならないように
+                        }
+                    }
+                }
+            });
+        });
+</script>
+{% endblock %}
